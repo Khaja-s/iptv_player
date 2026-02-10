@@ -1,0 +1,82 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup CocoaPods
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prebuild (Generate Native Code)
+        run: npx expo prebuild --platform ios --clean --no-interactive
+
+      - name: Install Pods
+        run: |
+          cd ios
+          pod install
+        
+      - name: Build iOS App (Unsigned)
+        run: |
+          # Initial build to generate the .app
+          # We check the name of the workspace - listing logic handles "IPTV Player" vs "IPTVPlayer"
+          cd ios
+          WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep "Schemes:" -A 1 | tail -n 1 | xargs)
+          
+          echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
+          
+          xcodebuild -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package IPA
+        run: |
+          # Create Payload directory structure for IPA
+          mkdir -p Payload
+          
+          # Find the .app in the derived data path
+          APP_PATH=$(find ios/build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: .app not found!"
+            exit 1
+          fi
+          
+          echo "found app at: $APP_PATH"
+          cp -r "$APP_PATH" Payload/
+          
+          # Zip it into an IPA
+          zip -r iptv-player.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: iptv-player.ipa
