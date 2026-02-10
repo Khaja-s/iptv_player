@@ -58,18 +58,22 @@ jobs:
 
       - name: Package IPA
         run: |
-          # Create Payload directory structure for IPA
+          # Debugging: List directory structure to help diagnose missing .app
+          echo "DEBUG: Listing ios/build structure:"
+          find ios/build -maxdepth 5 || echo "ios/build not found"
+          
           mkdir -p Payload
           
-          # Find the .app in the derived data path
-          APP_PATH=$(find ios/build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          # Find the .app in the derived data path (recursive search)
+          # We use -type d because .app is a directory
+          APP_PATH=$(find ios/build -name "*.app" -type d | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "Error: .app not found!"
+            echo "Error: .app not found in ios/build!"
             exit 1
           fi
           
-          echo "found app at: $APP_PATH"
+          echo "Found .app at: $APP_PATH"
           cp -r "$APP_PATH" Payload/
           
           # Zip it into an IPA
