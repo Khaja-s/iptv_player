@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Prebuild (Generate Native Code)
-        run: npx expo prebuild --platform ios --clean --no-interactive
+        run: npx expo prebuild --platform ios --clean
 
       - name: Install Pods
         run: |
