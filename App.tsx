@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import ChannelsScreen from './src/screens/ChannelsScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
@@ -17,14 +18,15 @@ import { colors } from './src/constants/theme';
 
 const Tab = createBottomTabNavigator();
 
-const darkTheme = {
-  dark: true,
+// ─── Japandi light theme for React Navigation ──────────────────────────
+const japandiTheme = {
+  dark: false,
   colors: {
     primary: colors.primary,
     background: colors.background,
     card: colors.surface,
-    text: colors.textPrimary,
-    border: colors.border,
+    text: colors.text,
+    border: colors.borderLight,
     notification: colors.primary,
   },
   fonts: {
@@ -35,19 +37,12 @@ const darkTheme = {
   },
 };
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Channels: '📺',
-    Favorites: '♥',
-    Settings: '⚙',
-  };
-
-  return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
-      {icons[label] || '●'}
-    </Text>
-  );
-}
+// ─── Tab icon map ───────────────────────────────────────────────────────
+const TAB_ICONS: Record<string, { focused: string; default: string }> = {
+  Channels: { focused: 'tv', default: 'tv-outline' },
+  Favorites: { focused: 'heart', default: 'heart-outline' },
+  Settings: { focused: 'settings', default: 'settings-outline' },
+};
 
 export default function App() {
   const {
@@ -85,87 +80,95 @@ export default function App() {
   // If player is open, show full-screen player
   if (playerChannel) {
     return (
-      <>
+      <SafeAreaProvider>
         <StatusBar hidden />
         <PlayerScreen
           channel={playerChannel}
           channelList={playerChannelList}
           onBack={handleClosePlayer}
-          isFavorite={isFavorite(playerChannel.id)}
+          isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
         />
-      </>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <NavigationContainer theme={darkTheme}>
-      <StatusBar style="light" />
-      <SafeAreaView style={styles.safeArea}>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarIcon: ({ focused }) => (
-              <TabIcon label={route.name} focused={focused} />
-            ),
-            tabBarActiveTintColor: colors.primary,
-            tabBarInactiveTintColor: colors.textMuted,
-            tabBarStyle: {
-              backgroundColor: colors.surface,
-              borderTopColor: colors.border,
-              borderTopWidth: 1,
-              height: 56,
-              paddingBottom: 4,
-            },
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: '600',
-            },
-          })}
-        >
-          <Tab.Screen name="Channels">
-            {() => (
-              <ChannelsScreen
-                channels={channels}
-                categories={categories}
-                loading={loading}
-                loadingStatus={loadingStatus}
-                error={error}
-                isFavorite={isFavorite}
-                onToggleFavorite={toggleFavorite}
-                onPlayChannel={handlePlayChannel}
-                onCancelLoad={cancelLoad}
-              />
-            )}
-          </Tab.Screen>
+    <SafeAreaProvider>
+      <NavigationContainer theme={japandiTheme}>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <Tab.Navigator
+            screenOptions={({ route }) => ({
+              headerShown: false,
+              tabBarIcon: ({ focused, color, size }) => {
+                const iconSet = TAB_ICONS[route.name] || { focused: 'ellipse', default: 'ellipse-outline' };
+                const iconName = focused ? iconSet.focused : iconSet.default;
+                return (
+                  <Ionicons
+                    name={iconName as any}
+                    size={22}
+                    color={color}
+                  />
+                );
+              },
+              tabBarActiveTintColor: colors.primary,
+              tabBarInactiveTintColor: colors.textMuted,
+              tabBarStyle: {
+                backgroundColor: colors.surface,
+                borderTopColor: colors.borderLight,
+                borderTopWidth: 1,
+              },
+              tabBarLabelStyle: {
+                fontSize: 11,
+                fontWeight: '600',
+              },
+            })}
+          >
+            <Tab.Screen name="Channels">
+              {() => (
+                <ChannelsScreen
+                  channels={channels}
+                  categories={categories}
+                  loading={loading}
+                  loadingStatus={loadingStatus}
+                  error={error}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
+                  onPlayChannel={handlePlayChannel}
+                  onCancelLoad={cancelLoad}
+                />
+              )}
+            </Tab.Screen>
 
-          <Tab.Screen name="Favorites">
-            {() => (
-              <FavoritesScreen
-                channels={channels}
-                favoriteIds={favoriteIds}
-                isFavorite={isFavorite}
-                onToggleFavorite={toggleFavorite}
-                onPlayChannel={handlePlayChannel}
-              />
-            )}
-          </Tab.Screen>
+            <Tab.Screen name="Favorites">
+              {() => (
+                <FavoritesScreen
+                  channels={channels}
+                  favoriteIds={favoriteIds}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
+                  onPlayChannel={handlePlayChannel}
+                />
+              )}
+            </Tab.Screen>
 
-          <Tab.Screen name="Settings">
-            {() => (
-              <SettingsScreen
-                channelCount={channelCount}
-                loading={loading}
-                loadingStatus={loadingStatus}
-                onLoadPlaylist={loadPlaylist}
-                onLoadXtream={loadXtream}
-                onCancelLoad={cancelLoad}
-              />
-            )}
-          </Tab.Screen>
-        </Tab.Navigator>
-      </SafeAreaView>
-    </NavigationContainer>
+            <Tab.Screen name="Settings">
+              {() => (
+                <SettingsScreen
+                  channelCount={channelCount}
+                  loading={loading}
+                  loadingStatus={loadingStatus}
+                  onLoadPlaylist={loadPlaylist}
+                  onLoadXtream={loadXtream}
+                  onCancelLoad={cancelLoad}
+                />
+              )}
+            </Tab.Screen>
+          </Tab.Navigator>
+        </SafeAreaView>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 

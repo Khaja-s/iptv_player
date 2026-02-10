@@ -7,7 +7,8 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius, typography, shadows } from '../constants/theme';
 
 interface CategoryTabsProps {
     categories: string[];
@@ -15,7 +16,7 @@ interface CategoryTabsProps {
     onSelect: (category: string) => void;
 }
 
-const SEARCH_THRESHOLD = 8; // Show search when more than 8 categories
+const SEARCH_THRESHOLD = 8;
 
 const CategoryTabs = memo<CategoryTabsProps>(
     ({ categories, activeCategory, onSelect }) => {
@@ -38,25 +39,37 @@ const CategoryTabs = memo<CategoryTabsProps>(
             <View style={styles.container}>
                 {showSearch && (
                     <View style={styles.searchRow}>
-                        <TextInput
-                            style={styles.searchInput}
-                            value={catQuery}
-                            onChangeText={setCatQuery}
-                            placeholder="Filter categories..."
-                            placeholderTextColor={colors.textMuted}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            returnKeyType="done"
-                        />
-                        {catQuery.length > 0 && (
-                            <TouchableOpacity
-                                style={styles.clearBtn}
-                                onPress={() => setCatQuery('')}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.clearText}>✕</Text>
-                            </TouchableOpacity>
-                        )}
+                        <View style={styles.searchInputWrap}>
+                            <Ionicons
+                                name="filter-outline"
+                                size={15}
+                                color={colors.textMuted}
+                                style={{ marginRight: spacing.xs }}
+                            />
+                            <TextInput
+                                style={styles.searchInput}
+                                value={catQuery}
+                                onChangeText={setCatQuery}
+                                placeholder="Filter categories..."
+                                placeholderTextColor={colors.textMuted}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                returnKeyType="done"
+                            />
+                            {catQuery.length > 0 && (
+                                <TouchableOpacity
+                                    onPress={() => setCatQuery('')}
+                                    activeOpacity={0.7}
+                                    hitSlop={8}
+                                >
+                                    <Ionicons
+                                        name="close-circle"
+                                        size={17}
+                                        color={colors.textMuted}
+                                    />
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 )}
 
@@ -98,37 +111,23 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.sm,
     },
     searchRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
         marginHorizontal: spacing.lg,
         marginBottom: spacing.sm,
     },
-    searchInput: {
-        flex: 1,
+    searchInputWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: colors.surfaceLight,
         borderRadius: borderRadius.md,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
+        ...shadows.sm,
+    },
+    searchInput: {
+        flex: 1,
         ...typography.caption,
-        color: colors.textPrimary,
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    clearBtn: {
-        marginLeft: spacing.sm,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: colors.surfaceLight,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: colors.border,
-    },
-    clearText: {
-        color: colors.textMuted,
-        fontSize: 12,
-        fontWeight: '700',
+        color: colors.text,
+        padding: 0,
     },
     scrollContent: {
         paddingHorizontal: spacing.lg,
@@ -139,19 +138,16 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.sm,
         borderRadius: borderRadius.full,
         backgroundColor: colors.surfaceLight,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     tabActive: {
         backgroundColor: colors.primary,
-        borderColor: colors.primary,
     },
     tabText: {
         ...typography.caption,
         color: colors.textSecondary,
     },
     tabTextActive: {
-        color: '#FFFFFF',
+        color: colors.textInverse,
         fontWeight: '700',
     },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, typography, spacing, borderRadius } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, typography, spacing, borderRadius, shadows } from '../constants/theme';
 
 interface LoadingOverlayProps {
     message?: string;
@@ -26,6 +27,12 @@ export default function LoadingOverlay({
                         onPress={onCancel}
                         activeOpacity={0.7}
                     >
+                        <Ionicons
+                            name="close-outline"
+                            size={16}
+                            color={colors.textSecondary}
+                            style={{ marginRight: spacing.xs }}
+                        />
                         <Text style={styles.cancelText}>Cancel</Text>
                     </TouchableOpacity>
                 )}
@@ -37,19 +44,18 @@ export default function LoadingOverlay({
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(10, 10, 15, 0.85)',
+        backgroundColor: 'rgba(250, 247, 242, 0.92)',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 100,
     },
     box: {
         backgroundColor: colors.surface,
-        borderRadius: 16,
+        borderRadius: borderRadius.xl,
         padding: spacing.xxl,
         alignItems: 'center',
         gap: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
+        ...shadows.md,
     },
     text: {
         ...typography.body,
@@ -57,13 +63,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     cancelBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginTop: spacing.sm,
         paddingHorizontal: spacing.xl,
         paddingVertical: spacing.sm,
-        borderRadius: borderRadius.md,
+        borderRadius: borderRadius.full,
         backgroundColor: colors.surfaceLight,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     cancelText: {
         ...typography.caption,

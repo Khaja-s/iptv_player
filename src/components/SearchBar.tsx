@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius, typography, shadows } from '../constants/theme';
 
 interface SearchBarProps {
     onSearch: (query: string) => void;
@@ -48,7 +49,12 @@ export default function SearchBar({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.icon}>🔍</Text>
+            <Ionicons
+                name="search-outline"
+                size={18}
+                color={colors.textMuted}
+                style={styles.icon}
+            />
             <TextInput
                 style={styles.input}
                 value={text}
@@ -60,8 +66,16 @@ export default function SearchBar({
                 autoCorrect={false}
             />
             {text.length > 0 && (
-                <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
-                    <Text style={styles.clearText}>✕</Text>
+                <TouchableOpacity
+                    onPress={handleClear}
+                    style={styles.clearBtn}
+                    hitSlop={8}
+                >
+                    <Ionicons
+                        name="close-circle"
+                        size={18}
+                        color={colors.textMuted}
+                    />
                 </TouchableOpacity>
             )}
         </View>
@@ -77,28 +91,21 @@ const styles = StyleSheet.create({
         marginHorizontal: spacing.lg,
         marginVertical: spacing.sm,
         paddingHorizontal: spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
         height: 46,
+        ...shadows.sm,
     },
     icon: {
-        fontSize: 16,
         marginRight: spacing.sm,
     },
     input: {
         flex: 1,
         ...typography.body,
-        color: colors.textPrimary,
+        color: colors.text,
         height: '100%',
         padding: 0,
     },
     clearBtn: {
         padding: spacing.xs,
         marginLeft: spacing.sm,
-    },
-    clearText: {
-        ...typography.body,
-        color: colors.textSecondary,
-        fontSize: 16,
     },
 });

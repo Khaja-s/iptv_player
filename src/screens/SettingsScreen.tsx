@@ -10,7 +10,8 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, borderRadius, typography, shadows } from '../constants/theme';
 import {
     getPlaylistUrl,
     getXtreamCredentials,
@@ -18,6 +19,7 @@ import {
     clearAll,
 } from '../services/storage';
 import { XtreamCredentials } from '../services/xtreamApi';
+import CredentialGrabberModal, { GrabbedCredentials } from '../components/CredentialGrabberModal';
 
 type ConnectionMode = 'm3u' | 'xtream';
 
@@ -47,6 +49,7 @@ export default function SettingsScreen({
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [saved, setSaved] = useState(false);
+    const [grabberVisible, setGrabberVisible] = useState(false);
 
     useEffect(() => {
         loadSavedSettings();
@@ -116,6 +119,18 @@ export default function SettingsScreen({
         setUrl(DEFAULT_PLAYLIST);
     };
 
+    const handleCredentialsGrabbed = (creds: GrabbedCredentials) => {
+        setServer(creds.serverUrl);
+        setUsername(creds.username);
+        setPassword(creds.password);
+        setMode('xtream');
+        setGrabberVisible(false);
+        Alert.alert(
+            '✅ Credentials Grabbed',
+            `Server: ${creds.serverUrl}\nUsername: ${creds.username}\n\nFields have been auto-populated. Tap Connect to load channels.`
+        );
+    };
+
     const handleClearCache = () => {
         Alert.alert(
             'Clear All Data',
@@ -147,9 +162,18 @@ export default function SettingsScreen({
                 contentContainerStyle={styles.scroll}
                 keyboardShouldPersistTaps="handled"
             >
-                <Text style={styles.title}>Settings</Text>
+                {/* Header */}
+                <View style={styles.headerRow}>
+                    <Ionicons
+                        name="settings-outline"
+                        size={22}
+                        color={colors.primary}
+                        style={{ marginRight: spacing.sm }}
+                    />
+                    <Text style={styles.title}>Settings</Text>
+                </View>
 
-                {/* ─── Connection Mode Toggle ─── */}
+                {/* Connection Mode Toggle */}
                 <View style={styles.toggleRow}>
                     <TouchableOpacity
                         style={[
@@ -159,6 +183,12 @@ export default function SettingsScreen({
                         onPress={() => setMode('m3u')}
                         activeOpacity={0.7}
                     >
+                        <Ionicons
+                            name="list-outline"
+                            size={16}
+                            color={mode === 'm3u' ? colors.textInverse : colors.textMuted}
+                            style={{ marginRight: spacing.xs }}
+                        />
                         <Text
                             style={[
                                 styles.toggleText,
@@ -177,6 +207,12 @@ export default function SettingsScreen({
                         onPress={() => setMode('xtream')}
                         activeOpacity={0.7}
                     >
+                        <Ionicons
+                            name="server-outline"
+                            size={16}
+                            color={mode === 'xtream' ? colors.textInverse : colors.textMuted}
+                            style={{ marginRight: spacing.xs }}
+                        />
                         <Text
                             style={[
                                 styles.toggleText,
@@ -188,7 +224,7 @@ export default function SettingsScreen({
                     </TouchableOpacity>
                 </View>
 
-                {/* ─── M3U Mode ─── */}
+                {/* M3U Mode */}
                 {mode === 'm3u' && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Playlist URL</Text>
@@ -216,6 +252,12 @@ export default function SettingsScreen({
                                 disabled={loading}
                                 activeOpacity={0.7}
                             >
+                                <Ionicons
+                                    name={loading ? 'hourglass-outline' : 'cloud-download-outline'}
+                                    size={16}
+                                    color={colors.textInverse}
+                                    style={{ marginRight: spacing.xs }}
+                                />
                                 <Text style={styles.btnPrimaryText}>
                                     {loading ? 'Loading...' : 'Load Playlist'}
                                 </Text>
@@ -246,13 +288,37 @@ export default function SettingsScreen({
                     </View>
                 )}
 
-                {/* ─── Xtream Mode ─── */}
+                {/* Xtream Mode */}
                 {mode === 'xtream' && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Server Credentials</Text>
                         <Text style={styles.sectionDesc}>
                             Enter your IPTV provider's server URL, username, and password
                         </Text>
+
+                        {/* Grab Fresh Credentials Button */}
+                        <TouchableOpacity
+                            style={styles.grabBtn}
+                            onPress={() => setGrabberVisible(true)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.grabBtnInner}>
+                                <View style={styles.grabBtnIconWrap}>
+                                    <Ionicons name="flash" size={18} color={colors.warning} />
+                                </View>
+                                <View style={styles.grabBtnTextWrap}>
+                                    <Text style={styles.grabBtnTitle}>Grab Fresh Credentials</Text>
+                                    <Text style={styles.grabBtnDesc}>
+                                        Auto-create a free IPTV account
+                                    </Text>
+                                </View>
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={18}
+                                    color={colors.textMuted}
+                                />
+                            </View>
+                        </TouchableOpacity>
 
                         <Text style={styles.fieldLabel}>Server URL</Text>
                         <TextInput
@@ -296,6 +362,12 @@ export default function SettingsScreen({
                                 disabled={loading}
                                 activeOpacity={0.7}
                             >
+                                <Ionicons
+                                    name={loading ? 'hourglass-outline' : 'log-in-outline'}
+                                    size={16}
+                                    color={colors.textInverse}
+                                    style={{ marginRight: spacing.xs }}
+                                />
                                 <Text style={styles.btnPrimaryText}>
                                     {loading ? 'Connecting...' : 'Connect'}
                                 </Text>
@@ -316,24 +388,36 @@ export default function SettingsScreen({
                     </View>
                 )}
 
-                {/* ─── Status Banners ─── */}
+                {/* Status Banners */}
                 {saved && (
                     <View style={styles.successBanner}>
+                        <Ionicons
+                            name="checkmark-circle"
+                            size={16}
+                            color={colors.primary}
+                            style={{ marginRight: spacing.xs }}
+                        />
                         <Text style={styles.successText}>
-                            ✓ Loaded {channelCount.toLocaleString()} channels
+                            Loaded {channelCount.toLocaleString()} channels
                         </Text>
                     </View>
                 )}
 
                 {loading && (
                     <View style={styles.loadingBanner}>
+                        <Ionicons
+                            name="sync-outline"
+                            size={16}
+                            color={colors.primary}
+                            style={{ marginRight: spacing.xs }}
+                        />
                         <Text style={styles.loadingBannerText}>
-                            ⏳ {loadingStatus}
+                            {loadingStatus}
                         </Text>
                     </View>
                 )}
 
-                {/* ─── Stats ─── */}
+                {/* Stats */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Playlist Info</Text>
 
@@ -344,7 +428,7 @@ export default function SettingsScreen({
                         </Text>
                     </View>
 
-                    <View style={styles.statRow}>
+                    <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
                         <Text style={styles.statLabel}>Connection</Text>
                         <Text style={styles.statValue}>
                             {mode === 'xtream' ? 'Xtream Codes' : 'M3U URL'}
@@ -352,22 +436,26 @@ export default function SettingsScreen({
                     </View>
                 </View>
 
-                {/* ─── Danger Zone ─── */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.error }]}>
-                        Danger Zone
-                    </Text>
+                {/* Danger Zone */}
+                <View style={styles.dangerSection}>
+                    <Text style={styles.dangerTitle}>Danger Zone</Text>
 
                     <TouchableOpacity
-                        style={[styles.btn, styles.btnDanger]}
+                        style={styles.btnDanger}
                         onPress={handleClearCache}
                         activeOpacity={0.7}
                     >
+                        <Ionicons
+                            name="trash-outline"
+                            size={16}
+                            color={colors.error}
+                            style={{ marginRight: spacing.xs }}
+                        />
                         <Text style={styles.btnDangerText}>Clear All Data</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* ─── About ─── */}
+                {/* About */}
                 <View style={styles.about}>
                     <Text style={styles.aboutText}>IPTV Player v1.0.0</Text>
                     <Text style={styles.aboutText}>
@@ -375,6 +463,13 @@ export default function SettingsScreen({
                     </Text>
                 </View>
             </ScrollView>
+
+            {/* Credential Grabber Modal */}
+            <CredentialGrabberModal
+                visible={grabberVisible}
+                onClose={() => setGrabberVisible(false)}
+                onCredentialsGrabbed={handleCredentialsGrabbed}
+            />
         </KeyboardAvoidingView>
     );
 }
@@ -388,28 +483,33 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
         paddingBottom: spacing.xxxl * 2,
     },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.lg,
+    },
     title: {
         ...typography.hero,
-        color: colors.textPrimary,
-        marginBottom: spacing.lg,
+        color: colors.text,
     },
     toggleRow: {
         flexDirection: 'row',
-        backgroundColor: colors.surface,
+        backgroundColor: colors.surfaceLight,
         borderRadius: borderRadius.lg,
         padding: 4,
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     toggleBtn: {
         flex: 1,
+        flexDirection: 'row',
         paddingVertical: spacing.md,
         alignItems: 'center',
+        justifyContent: 'center',
         borderRadius: borderRadius.md,
     },
     toggleBtnActive: {
         backgroundColor: colors.primary,
+        ...shadows.sm,
     },
     toggleText: {
         ...typography.caption,
@@ -417,19 +517,18 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     toggleTextActive: {
-        color: '#FFFFFF',
+        color: colors.textInverse,
     },
     section: {
         backgroundColor: colors.surface,
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.xl,
         padding: spacing.lg,
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
+        ...shadows.card,
     },
     sectionTitle: {
         ...typography.subtitle,
-        color: colors.textPrimary,
+        color: colors.text,
         marginBottom: spacing.xs,
     },
     sectionDesc: {
@@ -449,9 +548,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.md,
         ...typography.body,
-        color: colors.textPrimary,
-        borderWidth: 1,
-        borderColor: colors.border,
+        color: colors.text,
         marginBottom: spacing.md,
     },
     buttonRow: {
@@ -459,60 +556,113 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     btn: {
+        flexDirection: 'row',
         paddingVertical: spacing.md,
         paddingHorizontal: spacing.xl,
-        borderRadius: borderRadius.md,
+        borderRadius: borderRadius.lg,
         alignItems: 'center',
         justifyContent: 'center',
     },
     btnPrimary: {
         backgroundColor: colors.primary,
         flex: 1,
+        ...shadows.sm,
     },
     btnPrimaryText: {
         ...typography.caption,
-        color: '#FFFFFF',
+        color: colors.textInverse,
         fontWeight: '700',
     },
     btnSecondary: {
         backgroundColor: colors.surfaceLight,
-        borderWidth: 1,
-        borderColor: colors.border,
     },
     btnSecondaryText: {
         ...typography.caption,
         color: colors.textSecondary,
     },
-    btnDanger: {
-        backgroundColor: 'rgba(255, 71, 87, 0.12)',
+    dangerSection: {
+        backgroundColor: 'rgba(199, 84, 80, 0.04)',
+        borderRadius: borderRadius.xl,
+        padding: spacing.lg,
+        marginBottom: spacing.lg,
         borderWidth: 1,
-        borderColor: 'rgba(255, 71, 87, 0.3)',
+        borderColor: 'rgba(199, 84, 80, 0.12)',
+    },
+    dangerTitle: {
+        ...typography.subtitle,
+        color: colors.error,
+        marginBottom: spacing.md,
+    },
+    btnDanger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.xl,
+        borderRadius: borderRadius.lg,
+        backgroundColor: 'rgba(199, 84, 80, 0.08)',
     },
     btnDangerText: {
         ...typography.caption,
         color: colors.error,
         fontWeight: '600',
     },
+    grabBtn: {
+        backgroundColor: 'rgba(196, 145, 58, 0.06)',
+        borderRadius: borderRadius.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(196, 145, 58, 0.18)',
+        borderStyle: 'dashed',
+        padding: spacing.md,
+        marginBottom: spacing.lg,
+    },
+    grabBtnInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    grabBtnIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: borderRadius.md,
+        backgroundColor: 'rgba(196, 145, 58, 0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: spacing.md,
+    },
+    grabBtnTextWrap: {
+        flex: 1,
+    },
+    grabBtnTitle: {
+        ...typography.caption,
+        color: colors.text,
+        fontWeight: '700',
+    },
+    grabBtnDesc: {
+        ...typography.tiny,
+        color: colors.textMuted,
+        textTransform: 'none',
+        marginTop: 2,
+    },
     successBanner: {
-        backgroundColor: 'rgba(0, 214, 143, 0.12)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primaryGhost,
         borderRadius: borderRadius.md,
         padding: spacing.md,
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: 'rgba(0, 214, 143, 0.3)',
     },
     successText: {
         ...typography.caption,
-        color: colors.success,
+        color: colors.primary,
         fontWeight: '600',
     },
     loadingBanner: {
-        backgroundColor: 'rgba(99, 102, 241, 0.12)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primaryGhost,
         borderRadius: borderRadius.md,
         padding: spacing.md,
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: 'rgba(99, 102, 241, 0.3)',
     },
     loadingBannerText: {
         ...typography.caption,
@@ -525,7 +675,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        borderBottomColor: colors.borderLight,
     },
     statLabel: {
         ...typography.body,
@@ -533,7 +683,7 @@ const styles = StyleSheet.create({
     },
     statValue: {
         ...typography.body,
-        color: colors.textPrimary,
+        color: colors.text,
         fontWeight: '600',
         maxWidth: '60%',
     },

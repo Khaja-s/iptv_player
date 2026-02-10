@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { Ionicons } from '@expo/vector-icons';
 import { Channel } from '../types';
 import ChannelCard from '../components/ChannelCard';
 import CategoryTabs from '../components/CategoryTabs';
 import SearchBar from '../components/SearchBar';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { colors, spacing, typography } from '../constants/theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../constants/theme';
 
 interface ChannelsScreenProps {
     channels: Channel[];
@@ -34,7 +35,6 @@ export default function ChannelsScreen({
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
 
-    // Filter channels by category + search (memoized for perf)
     const filteredChannels = useMemo(() => {
         let result = channels;
 
@@ -83,10 +83,20 @@ export default function ChannelsScreen({
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Channels</Text>
-                <Text style={styles.count}>
-                    {filteredChannels.length.toLocaleString()} channels
-                </Text>
+                <View style={styles.headerLeft}>
+                    <Ionicons
+                        name="tv-outline"
+                        size={22}
+                        color={colors.primary}
+                        style={{ marginRight: spacing.sm }}
+                    />
+                    <Text style={styles.title}>Channels</Text>
+                </View>
+                <View style={styles.countBadge}>
+                    <Text style={styles.countText}>
+                        {filteredChannels.length.toLocaleString()}
+                    </Text>
+                </View>
             </View>
 
             {/* Search */}
@@ -104,18 +114,42 @@ export default function ChannelsScreen({
             {/* Error */}
             {error && (
                 <View style={styles.errorBanner}>
-                    <Text style={styles.errorText}>⚠ {error}</Text>
+                    <Ionicons
+                        name="warning-outline"
+                        size={16}
+                        color={colors.error}
+                        style={{ marginRight: spacing.xs }}
+                    />
+                    <Text style={styles.errorText}>{error}</Text>
                 </View>
             )}
 
             {/* Channel list */}
             {channels.length === 0 && !loading ? (
                 <View style={styles.empty}>
-                    <Text style={styles.emptyEmoji}>📺</Text>
-                    <Text style={styles.emptyTitle}>No Channels Yet</Text>
-                    <Text style={styles.emptyText}>
-                        Go to Settings to add a playlist URL
-                    </Text>
+                    <View style={styles.emptyCard}>
+                        <View style={styles.emptyIconWrap}>
+                            <Ionicons
+                                name="tv-outline"
+                                size={40}
+                                color={colors.primary}
+                            />
+                        </View>
+                        <Text style={styles.emptyTitle}>No Channels Yet</Text>
+                        <Text style={styles.emptyText}>
+                            Add a playlist URL in Settings to get started
+                        </Text>
+                        <View style={styles.emptyHint}>
+                            <Ionicons
+                                name="arrow-forward-outline"
+                                size={14}
+                                color={colors.primary}
+                            />
+                            <Text style={styles.emptyHintText}>
+                                Go to Settings tab
+                            </Text>
+                        </View>
+                    </View>
                 </View>
             ) : (
                 <FlashList
@@ -138,31 +172,43 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'baseline',
+        alignItems: 'center',
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.md,
         paddingBottom: spacing.xs,
     },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     title: {
         ...typography.hero,
-        color: colors.textPrimary,
+        color: colors.text,
     },
-    count: {
+    countBadge: {
+        backgroundColor: colors.primaryGhost,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderRadius: borderRadius.full,
+    },
+    countText: {
         ...typography.caption,
-        color: colors.textMuted,
+        color: colors.primary,
+        fontWeight: '700',
     },
     errorBanner: {
-        backgroundColor: 'rgba(255, 71, 87, 0.12)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(199, 84, 80, 0.08)',
         marginHorizontal: spacing.lg,
         marginVertical: spacing.sm,
         padding: spacing.md,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 71, 87, 0.3)',
+        borderRadius: borderRadius.md,
     },
     errorText: {
         ...typography.caption,
         color: colors.error,
+        flex: 1,
     },
     listContent: {
         paddingBottom: spacing.xxxl,
@@ -174,18 +220,41 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.xxxl,
     },
-    emptyEmoji: {
-        fontSize: 48,
+    emptyCard: {
+        backgroundColor: colors.surface,
+        borderRadius: borderRadius.xl,
+        padding: spacing.xxl,
+        alignItems: 'center',
+        ...shadows.card,
+    },
+    emptyIconWrap: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: colors.primaryGhost,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: spacing.lg,
     },
     emptyTitle: {
         ...typography.title,
-        color: colors.textPrimary,
+        color: colors.text,
         marginBottom: spacing.sm,
     },
     emptyText: {
         ...typography.body,
         color: colors.textSecondary,
         textAlign: 'center',
+        marginBottom: spacing.lg,
+    },
+    emptyHint: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    emptyHintText: {
+        ...typography.caption,
+        color: colors.primary,
+        fontWeight: '600',
     },
 });

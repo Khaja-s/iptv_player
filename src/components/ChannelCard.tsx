@@ -7,8 +7,9 @@ import {
     Pressable,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { Channel } from '../types';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { colors, spacing, borderRadius, typography, shadows } from '../constants/theme';
 
 interface ChannelCardProps {
     channel: Channel;
@@ -65,9 +66,11 @@ const ChannelCard = memo<ChannelCardProps>(
                     style={styles.favoriteBtn}
                     hitSlop={12}
                 >
-                    <Text style={[styles.heart, isFavorite && styles.heartActive]}>
-                        {isFavorite ? '♥' : '♡'}
-                    </Text>
+                    <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={22}
+                        color={isFavorite ? colors.heart : colors.heartEmpty}
+                    />
                 </Pressable>
             </TouchableOpacity>
         );
@@ -90,13 +93,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
         marginHorizontal: spacing.lg,
         marginBottom: spacing.sm,
-        borderRadius: borderRadius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderRadius: borderRadius.xl,
+        ...shadows.card,
     },
     logoContainer: {
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         borderRadius: borderRadius.md,
         overflow: 'hidden',
         backgroundColor: colors.surfaceLight,
@@ -104,12 +106,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logo: {
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
     },
     logoPlaceholder: {
-        width: 44,
-        height: 44,
+        width: 46,
+        height: 46,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: colors.primaryGhost,
@@ -125,7 +127,7 @@ const styles = StyleSheet.create({
     },
     name: {
         ...typography.subtitle,
-        color: colors.textPrimary,
+        color: colors.text,
     },
     group: {
         ...typography.caption,
@@ -135,12 +137,5 @@ const styles = StyleSheet.create({
     favoriteBtn: {
         padding: spacing.sm,
         marginLeft: spacing.sm,
-    },
-    heart: {
-        fontSize: 22,
-        color: colors.heartEmpty,
-    },
-    heartActive: {
-        color: colors.heart,
     },
 });
