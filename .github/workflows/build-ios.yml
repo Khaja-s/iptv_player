@@ -43,18 +43,36 @@ jobs:
           # We check the name of the workspace - listing logic handles "IPTV Player" vs "IPTVPlayer"
           cd ios
           WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
-          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | grep "Schemes:" -A 1 | tail -n 1 | xargs)
+          
+          # More robust scheme detection
+          if [ -z "$WORKSPACE" ]; then
+             echo "Error: No workspace found!"
+             exit 1
+          fi
+
+          echo "Found workspace: $WORKSPACE"
+          
+          # List all schemes for debugging
+          xcodebuild -workspace "$WORKSPACE" -list
+          
+          # Attempt to find the main scheme (usually matches the sanitized app name)
+          # We filter out Pods and other auxiliary schemes if possible, but usually the first scheme is the app.
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | sed -n '/Schemes:/,$p' | tail -n +2 | head -n 1 | xargs)
+          
+          if [ -z "$SCHEME" ]; then
+             echo "Error: Could not detect scheme!"
+             exit 1
+          fi
           
           echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
           
           xcodebuild -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -configuration Release \
-            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_REQUIRED=NO
 
       - name: Package IPA
         run: |
