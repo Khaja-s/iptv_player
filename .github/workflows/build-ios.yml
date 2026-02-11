@@ -23,10 +23,13 @@ jobs:
       - name: Generate native iOS project
         run: npx expo prebuild --platform ios --clean
 
+      - name: List available schemes
+        run: xcodebuild -workspace ios/IPTVPlayer.xcworkspace -list
+
       - name: Build unsigned .app (simulator)
         run: |
           xcodebuild -workspace ios/IPTVPlayer.xcworkspace \
-            -scheme "IPTV Player" \
+            -scheme "IPTVPlayer" \
             -configuration Release \
             -sdk iphonesimulator \
             -derivedDataPath build \
