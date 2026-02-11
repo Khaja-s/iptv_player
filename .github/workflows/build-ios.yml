@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,81 +20,68 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Setup CocoaPods
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-
-      - name: Install dependencies
+      - name: Install JS dependencies
         run: npm ci
 
-      - name: Prebuild (Generate Native Code)
+      - name: Expo Prebuild
         run: npx expo prebuild --platform ios --clean
 
-      - name: Install Pods
-        run: |
-          cd ios
-          pod install
-        
+      - name: Install CocoaPods
+        run: cd ios && pod install
+
       - name: Build iOS App (Unsigned)
         run: |
-          # Initial build to generate the .app
-          # We check the name of the workspace - listing logic handles "IPTV Player" vs "IPTVPlayer"
           cd ios
-          WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
-          
-          # More robust scheme detection
-          if [ -z "$WORKSPACE" ]; then
-             echo "Error: No workspace found!"
-             exit 1
-          fi
 
-          echo "Found workspace: $WORKSPACE"
-          
-          # List all schemes for debugging
+          # Find the workspace
+          WORKSPACE=$(ls -d *.xcworkspace | head -n 1)
+          echo "Workspace: $WORKSPACE"
+
+          # List schemes for debugging
           xcodebuild -workspace "$WORKSPACE" -list
-          
-          # Attempt to find the main scheme (usually matches the sanitized app name)
-          # We filter out Pods and other auxiliary schemes if possible, but usually the first scheme is the app.
-          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list | sed -n '/Schemes:/,$p' | tail -n +2 | head -n 1 | xargs)
-          
-          if [ -z "$SCHEME" ]; then
-             echo "Error: Could not detect scheme!"
-             exit 1
-          fi
-          
-          echo "Building Workspace: $WORKSPACE with Scheme: $SCHEME"
-          
-          xcodebuild -workspace "$WORKSPACE" \
+
+          # Grab the first scheme (this is the app scheme)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null \
+            | sed -n '/Schemes:/,/^$/p' \
+            | grep -v "Schemes:" \
+            | head -n 1 \
+            | xargs)
+          echo "Scheme: $SCHEME"
+
+          # Build for device, unsigned
+          xcodebuild build \
+            -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -configuration Release \
-            -destination 'generic/platform=iOS' \
+            -sdk iphoneos \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_REQUIRED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            ONLY_ACTIVE_ARCH=NO
 
       - name: Package IPA
         run: |
-          # Debugging: List directory structure to help diagnose missing .app
-          echo "DEBUG: Listing ios/build structure:"
-          find ios/build -maxdepth 5 || echo "ios/build not found"
-          
-          mkdir -p Payload
-          
-          # Find the .app in the derived data path (recursive search)
-          # We use -type d because .app is a directory
-          APP_PATH=$(find ios/build -name "*.app" -type d | head -n 1)
-          
+          # Debug: show what was built
+          echo "=== Build products ==="
+          ls -la ios/build/Build/Products/Release-iphoneos/ || true
+          echo "=== Looking for .app bundles ==="
+          find ios/build -name "*.app" -type d 2>/dev/null || true
+
+          # Locate the .app
+          APP_PATH=$(find ios/build/Build/Products/Release-iphoneos -name "*.app" -type d -maxdepth 1 | head -n 1)
+
           if [ -z "$APP_PATH" ]; then
-            echo "Error: .app not found in ios/build!"
+            echo "ERROR: No .app found. Full build tree:"
+            find ios/build -type d -maxdepth 4
             exit 1
           fi
-          
-          echo "Found .app at: $APP_PATH"
+
+          echo "Found app: $APP_PATH"
+
+          # Create IPA structure
+          mkdir -p Payload
           cp -r "$APP_PATH" Payload/
-          
-          # Zip it into an IPA
           zip -r iptv-player.ipa Payload
 
       - name: Upload IPA
