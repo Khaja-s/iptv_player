@@ -26,19 +26,23 @@ jobs:
       - name: List available schemes
         run: xcodebuild -workspace ios/IPTVPlayer.xcworkspace -list
 
-      - name: Build unsigned .app (simulator)
+      - name: Build unsigned .app (device)
         run: |
           xcodebuild -workspace ios/IPTVPlayer.xcworkspace \
             -scheme "IPTVPlayer" \
             -configuration Release \
-            -sdk iphonesimulator \
+            -sdk iphoneos \
+            -arch arm64 \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_REQUIRED=NO
 
       - name: Package .ipa
         run: |
           mkdir -p Payload
-          cp -r build/Build/Products/Release-iphonesimulator/*.app Payload/
+          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
           zip -r IPTVPlayer.ipa Payload
 
       - name: Upload .ipa artifact
