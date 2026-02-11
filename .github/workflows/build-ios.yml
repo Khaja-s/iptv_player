@@ -93,17 +93,33 @@ jobs:
 
       - name: Create Unsigned IPA
         run: |
-          cd ios/build/iptvplayer.xcarchive/Products/Applications
+          ARCHIVE_PATH="ios/build/iptvplayer.xcarchive"
+          
+          # Debug: show archive structure
+          echo "=== Archive structure ==="
+          find "$ARCHIVE_PATH" -name "*.app" -type d 2>/dev/null || true
+          ls -la "$ARCHIVE_PATH/Products/" 2>/dev/null || true
+          
+          # Find the .app bundle inside the archive
+          APP_PATH=$(find "$ARCHIVE_PATH" -name "*.app" -type d | head -n 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found in archive. Full archive tree:"
+            find "$ARCHIVE_PATH" -type d -maxdepth 5
+            exit 1
+          fi
+          
+          echo "Found app: $APP_PATH"
           
           # Create Payload folder structure for IPA
           mkdir -p Payload
-          cp -r iptvplayer.app Payload/
+          cp -r "$APP_PATH" Payload/
           
           # Create the IPA (which is just a zip with .ipa extension)
-          zip -r ../../../../../iptvplayer-unsigned.ipa Payload
+          zip -r iptvplayer-unsigned.ipa Payload
           
           echo "IPA created successfully"
-          ls -la ../../../../../iptvplayer-unsigned.ipa
+          ls -la iptvplayer-unsigned.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
