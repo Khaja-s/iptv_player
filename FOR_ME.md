@@ -136,10 +136,13 @@ graph TB
 
 | **Xtream API** via player_api.php | Uses structured JSON endpoints (`get_live_streams`, `get_live_categories`) instead of parsing a massive M3U file. Faster, typed, and supports auth status checking. | More API calls (3 round-trips: auth + categories + streams). Worth it for proper error handling. |
 
+| **GitHub Actions + local xcodebuild** over EAS Build | Free, no Expo account needed, full control over the build pipeline. EAS Build requires a paid plan for iOS. | Produces unsigned simulator .ipa only. Signing requires Apple certs + provisioning profiles as GitHub secrets. |
+
 ### Intentional Technical Debt
 - **No unit tests** — MVP speed. Add Jest when the app stabilizes.
 - **No EPG** — Planned for v2. The architecture supports it (just add an EPG service + data to the channel model).
 - ~~**Mixed icon strategy**~~ — ✅ **Resolved.** All icons now use `@expo/vector-icons` (Ionicons). No more emoji fallbacks.
+- **Unsigned .ipa** — The CI pipeline builds for simulator only. For physical device distribution, add code signing.
 
 | **react-native-webview** for credential grabbing | Lets us reuse the same extraction JS logic from the Puppeteer scraper, but runs it in-app on real pages. Turnstile/CAPTCHA solves naturally since it's a real browser. | Requires user to wait ~10-15s for Turnstile. Not fully automatic. |
 
