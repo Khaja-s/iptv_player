@@ -1,91 +1,122 @@
-name: Build iOS IPA
+name: Build iOS
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
     name: Build iOS IPA
-    runs-on: macos-latest
-    permissions:
-      contents: read
-
+    runs-on: macos-15
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
           cache: 'npm'
 
-      - name: Install JS dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
-      - name: Expo Prebuild
+      - name: Generate iOS project
         run: npx expo prebuild --platform ios --clean
+        env:
+          CI: 1
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
 
       - name: Install CocoaPods
-        run: cd ios && pod install
+        run: |
+          sudo gem install cocoapods
+          cd ios && pod install --repo-update
 
-      - name: Build iOS App (Unsigned)
+      - name: Disable Code Signing
         run: |
           cd ios
+          
+          # Disable code signing in project
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "";/g' iptvplayer.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' iptvplayer.xcodeproj/project.pbxproj
+          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = .*/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";/g' iptvplayer.xcodeproj/project.pbxproj
+          
+          # Add build settings to disable signing
+          echo "Disabling code signing..."
 
-          # Find the workspace
-          WORKSPACE=$(ls -d *.xcworkspace | head -n 1)
-          echo "Workspace: $WORKSPACE"
+      - name: Create Export Options Plist
+        run: |
+          cat > ios/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>signingStyle</key>
+              <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
 
-          # List schemes for debugging
-          xcodebuild -workspace "$WORKSPACE" -list
-
-          # Grab the first scheme (this is the app scheme)
-          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list 2>/dev/null \
-            | sed -n '/Schemes:/,/^$/p' \
-            | grep -v "Schemes:" \
-            | head -n 1 \
-            | xargs)
-          echo "Scheme: $SCHEME"
-
-          # Build for device, unsigned
-          xcodebuild build \
-            -workspace "$WORKSPACE" \
-            -scheme "$SCHEME" \
+      - name: Build Archive
+        run: |
+          cd ios
+          
+          xcodebuild \
+            -workspace iptvplayer.xcworkspace \
+            -scheme iptvplayer \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath build \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/iptvplayer.xcarchive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            ONLY_ACTIVE_ARCH=NO
+            ENABLE_BITCODE=NO \
+            archive \
+            | tee build.log
+          
+          echo "Archive created"
 
-      - name: Package IPA
+      - name: Create Unsigned IPA
         run: |
-          # Debug: show what was built
-          echo "=== Build products ==="
-          ls -la ios/build/Build/Products/Release-iphoneos/ || true
-          echo "=== Looking for .app bundles ==="
-          find ios/build -name "*.app" -type d 2>/dev/null || true
-
-          # Locate the .app
-          APP_PATH=$(find ios/build/Build/Products/Release-iphoneos -name "*.app" -type d -maxdepth 1 | head -n 1)
-
-          if [ -z "$APP_PATH" ]; then
-            echo "ERROR: No .app found. Full build tree:"
-            find ios/build -type d -maxdepth 4
-            exit 1
-          fi
-
-          echo "Found app: $APP_PATH"
-
-          # Create IPA structure
+          cd ios/build/iptvplayer.xcarchive/Products/Applications
+          
+          # Create Payload folder structure for IPA
           mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
-          zip -r iptv-player.ipa Payload
+          cp -r iptvplayer.app Payload/
+          
+          # Create the IPA (which is just a zip with .ipa extension)
+          zip -r ../../../../../iptvplayer-unsigned.ipa Payload
+          
+          echo "IPA created successfully"
+          ls -la ../../../../../iptvplayer-unsigned.ipa
 
-      - name: Upload IPA
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa
-          path: iptv-player.ipa
+          name: iptvplayer-iOS-unsigned
+          path: iptvplayer-unsigned.ipa
+          if-no-files-found: error
+
+      - name: Upload Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ios/build.log
+            ios/build/
